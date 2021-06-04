@@ -4,7 +4,6 @@ import net.minecraft.entity.ai.goal.Goal;
 import tallestegg.guardvillagers.entities.GuardEntity;
 
 public class KickGoal extends Goal {
-
     public final GuardEntity guard;
 
     public KickGoal(GuardEntity guard) {

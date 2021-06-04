@@ -44,6 +44,8 @@ import net.minecraft.entity.ai.goal.ReturnToVillageGoal;
 import net.minecraft.entity.ai.goal.SwimGoal;
 import net.minecraft.entity.ai.goal.TargetGoal;
 import net.minecraft.entity.effect.LightningBoltEntity;
+import net.minecraft.entity.merchant.IReputationTracking;
+import net.minecraft.entity.merchant.IReputationType;
 import net.minecraft.entity.merchant.villager.AbstractVillagerEntity;
 import net.minecraft.entity.merchant.villager.VillagerEntity;
 import net.minecraft.entity.monster.AbstractIllagerEntity;
@@ -127,7 +129,7 @@ import tallestegg.guardvillagers.entities.ai.goals.RunToClericGoal;
 import tallestegg.guardvillagers.entities.ai.goals.WalkBackToCheckPointGoal;
 import tallestegg.guardvillagers.networking.GuardOpenInventoryPacket;
 
-public class GuardEntity extends CreatureEntity implements ICrossbowUser, IRangedAttackMob, IAngerable, IInventoryChangedListener {
+public class GuardEntity extends CreatureEntity implements ICrossbowUser, IRangedAttackMob, IAngerable, IInventoryChangedListener, IReputationTracking {
     private static final UUID MODIFIER_UUID = UUID.fromString("5CD17E52-A79A-43D3-A529-90FDE04B181E");
     private static final AttributeModifier USE_ITEM_SPEED_PENALTY = new AttributeModifier(MODIFIER_UUID, "Use item speed penalty", -0.25D, AttributeModifier.Operation.ADDITION);
     private static final DataParameter<Optional<BlockPos>> GUARD_POS = EntityDataManager.createKey(GuardEntity.class, DataSerializers.OPTIONAL_BLOCK_POS);
@@ -146,8 +148,8 @@ public class GuardEntity extends CreatureEntity implements ICrossbowUser, IRange
     public int shieldCoolDown;
     public int kickCoolDown;
     public boolean interacting;
-    private int field_234197_bv_;
-    private static final RangedInteger angerTime = TickRangeConverter.convertRange(20, 39);
+    private int angerTime;
+    private static final RangedInteger angerTimeRange = TickRangeConverter.convertRange(20, 39);
     private UUID angerTarget;
     private static final Map<EquipmentSlotType, ResourceLocation> EQUIPMENT_SLOT_ITEMS = Util.make(Maps.newHashMap(), (slotItems) -> {
         slotItems.put(EquipmentSlotType.MAINHAND, GuardLootTables.GUARD_MAIN_HAND);
@@ -697,7 +699,7 @@ public class GuardEntity extends CreatureEntity implements ICrossbowUser, IRange
 
     @Override
     public boolean canAttack(LivingEntity target) {
-        return !this.isOwner(target) && !(target instanceof VillagerEntity) && !(target instanceof IronGolemEntity) && super.canAttack(target);
+        return !this.isOwner(target) && !target.isPotionActive(Effects.HERO_OF_THE_VILLAGE) && !(target instanceof VillagerEntity) && !(target instanceof IronGolemEntity) && super.canAttack(target);
     }
 
     /**
@@ -875,7 +877,7 @@ public class GuardEntity extends CreatureEntity implements ICrossbowUser, IRange
 
     @Override
     public int getAngerTime() {
-        return this.field_234197_bv_;
+        return this.angerTime;
     }
 
     @Override
@@ -885,18 +887,17 @@ public class GuardEntity extends CreatureEntity implements ICrossbowUser, IRange
 
     @Override
     public void setAngerTime(int arg0) {
-        this.field_234197_bv_ = arg0;
+        this.angerTime = arg0;
     }
 
     @Override
     public void func_230258_H__() {
-        this.setAngerTime(angerTime.getRandomWithinRange(rand));
+        this.setAngerTime(angerTimeRange.getRandomWithinRange(rand));
     }
 
     public void openGui(ServerPlayerEntity player) {
-        if (player.openContainer != player.container) {
+        if (player.openContainer != player.container)
             player.closeScreen();
-        }
         this.interacting = true;
         player.getNextWindowId();
         GuardPacketHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new GuardOpenInventoryPacket(player.currentWindowId, this.guardInventory.getSizeInventory(), this.getEntityId()));
@@ -1086,5 +1087,11 @@ public class GuardEntity extends CreatureEntity implements ICrossbowUser, IRange
                 this.guard.attackEntityAsMob(enemy);
             }
         }
+    }
+
+    @Override
+    public void updateReputation(IReputationType type, Entity target) {
+        // TODO Auto-generated method stub
+
     }
 }
